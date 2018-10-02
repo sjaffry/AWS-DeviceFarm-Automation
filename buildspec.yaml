@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Nothing to pre-build...
+  build:
+    commands:
+      - echo Build started on `date`
+      - ./execute_tests.sh > output.txt
+  post_build:
+    commands:
+      - echo Build completed on `date`
+artifacts:
+  files: output.txt

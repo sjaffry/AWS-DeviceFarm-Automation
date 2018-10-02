@@ -1,0 +1,12 @@
+[
+    {
+        "attribute": "PLATFORM",
+        "operator": "EQUALS",
+        "value": "\"ANDROID\""
+    },
+    {
+        "attribute": "MANUFACTURER",
+        "operator": "EQUALS",
+        "value": "\"Samsung\""
+    }
+]
