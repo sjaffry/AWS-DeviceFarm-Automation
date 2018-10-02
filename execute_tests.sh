@@ -1,26 +1,35 @@
 #!/bin/bash
-UPLAOD_NAME="test_bundle.zip"
-UPLOAD_TYPE="APPIUM_WEB_PYTHON_TEST_PACKAGE"
+AWS_ACCOUNT=$1
+TEST_PKG_NAME=$2
+TEST_PKG_TYPE="APPIUM_WEB_PYTHON_TEST_PACKAGE"
 TEST_TYPE="APPIUM_WEB_PYTHON"
 
+extract_arn() {
+grep '\"arn\"' $1 | sed 's/\"arn\": //g' | sed 's/\,//g' | sed 's/\"//g' | tr -d '[:space:]'
+}
+
+extract_url() {
+grep '\"url\"' $1 | sed 's/\"url\": //g' | sed 's/\"//g' | sed 's/\,//g' | tr -d '[:space:]'
+}
+
 echo ">> Creating project"
-PROJECT=$(aws devicefarm create-project --name IAG-POC | grep '\"arn\"' | sed 's/\"arn\": //g' | sed 's/\,//g' | sed 's/\"//g' | tr -d '[:space:]')
+PROJECT=$(aws devicefarm create-project --name IAG-POC | extract_arn)
 echo "Project ARN: $PROJECT"
 
 echo ">> Creating Device Pool"
-DEVICE_POOL=$(aws devicefarm create-device-pool --name android-devices --rules file://device-pool-rules.json --project-arn $PROJECT | grep '\"arn\"' | sed 's/\"arn\": //g' | sed 's/\,//g' | sed 's/\"//g' | tr -d '[:space:]')
+DEVICE_POOL=$(aws devicefarm create-device-pool --name android-devices --rules file://device-pool-rules.json --project-arn $PROJECT | extract_arn)
 echo "Device Pool ARN: $DEVICE_POOL"
 
 echo ">> Creating upload"
-URL=$(aws devicefarm create-upload --project-arn $PROJECT --name $UPLAOD_NAME --type $UPLOAD_TYPE | grep '\"url\"' | sed 's/\"url\": //g' | sed 's/\"//g' | sed 's/\,//g' | tr -d '[:space:]')
-UPLOAD_ARN=$(aws devicefarm list-uploads --arn $PROJECT | grep "946827581022" | grep '\"arn\"' | sed 's/\"arn\": //g' | sed 's/\,//g' | tr -d '[:space:]')
+URL=$(aws devicefarm create-upload --project-arn $PROJECT --name $TEST_PKG_NAME --type $TEST_PKG_TYPE | extract_url)
+UPLOAD_ARN=$(aws devicefarm list-uploads --arn $PROJECT | grep $AWS_ACCOUNT | extract_arn)
 echo "Upload ARN: $UPLOAD_ARN"
 
 echo ">> Uploading package to $URL"
-curl --upload-file $UPLAOD_NAME $URL --verbose
+curl --upload-file $TEST_PKG_NAME $URL --verbose
 
 echo ">> Creating a new test run"
-RUN=$(aws devicefarm schedule-run --name IAG-DEVICE_TESTS-1 --project-arn $PROJECT --device-pool-arn $DEVICE_POOL --test type=$TEST_TYPE,testPackageArn=$UPLOAD_ARN | grep '\"arn\"' | sed 's/\"arn\": //g' | sed 's/\,//g' | sed 's/\"//g' | tr -d '[:space:]')
+RUN=$(aws devicefarm schedule-run --name IAG-DEVICE_TESTS-1 --project-arn $PROJECT --device-pool-arn $DEVICE_POOL --test type=$TEST_TYPE,testPackageArn=$UPLOAD_ARN | extract_arn)
 echo "RUN ARN = $RUN"
 
 RUN_STATUS=$(aws devicefarm get-run --arn $RUN | grep status | sed 's/\,//g' | sed 's/\"//g' | tr -d '[:space:]')
